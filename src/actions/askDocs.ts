@@ -38,15 +38,15 @@ const actionDefinition: ActionDefinition = {
 export default actionDefinition;
 
 export async function handler({ input }: ActionContext): Promise<OutputObject> {
-  const apiKey = process.env.GITBOOK_API_KEY;
   const orgId = process.env.GITBOOK_ORG_ID;
-
-  if (!apiKey) {
-    throw new Error('GITBOOK_API_KEY is not defined in environment variables.');
-  }
+  const apiKey = process.env.GITBOOK_API_KEY;
 
   if (!orgId) {
     throw new Error('GITBOOK_ORG_ID is not defined in environment variables.');
+  }
+
+  if (!apiKey) {
+    throw new Error('GITBOOK_API_KEY is not defined in environment variables.');
   }
 
   const response = await axios.post(
