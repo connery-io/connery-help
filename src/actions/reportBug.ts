@@ -2,8 +2,8 @@ import { ActionDefinition, ActionContext, OutputObject } from 'connery';
 
 const actionDefinition: ActionDefinition = {
   key: 'reportBug',
-  name: 'Report bug',
-  description: '',
+  name: 'Report bug to Connery',
+  description: 'Report a bug to the Connery team.',
   type: 'create',
   inputParameters: [
     {
