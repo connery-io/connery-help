@@ -1,4 +1,4 @@
-import { ActionDefinition, ActionContext, OutputObject } from 'connery';
+import { ActionDefinition, OutputObject } from 'connery';
 
 const actionDefinition: ActionDefinition = {
   key: 'listActions',
@@ -22,7 +22,7 @@ const actionDefinition: ActionDefinition = {
 };
 export default actionDefinition;
 
-export async function handler({ input }: ActionContext): Promise<OutputObject> {
+export async function handler(): Promise<OutputObject> {
   return {
     textResponse:
       'Please find all the available actions for your organization on the Connery Platform:\n' +
