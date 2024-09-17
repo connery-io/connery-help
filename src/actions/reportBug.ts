@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { ActionDefinition, ActionContext, OutputObject } from 'connery';
 
 const actionDefinition: ActionDefinition = {
@@ -61,7 +62,16 @@ const actionDefinition: ActionDefinition = {
 export default actionDefinition;
 
 export async function handler({ input }: ActionContext): Promise<OutputObject> {
-  // TODO: Implement the action logic.
+  const slackWebhookUrl = process.env.BUG_REPORT_SLACK_WEBHOOK_URL;
+
+  if (!slackWebhookUrl) {
+    throw new Error('BUG_REPORT_SLACK_WEBHOOK_URL is not defined in environment variables.');
+  }
+
+  const message = `*🐞 You have a new bug report*\n\nName: ${input.name}\nEmail: ${input.email}\nOrganization: ${input.organization}\n\n${input.bugDescription}`;
+  await axios.post(slackWebhookUrl, {
+    text: message,
+  });
 
   return {
     textResponse: 'Thank you for your bug report! We will review it and get back to you soon.',

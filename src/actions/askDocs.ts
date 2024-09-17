@@ -38,6 +38,25 @@ const actionDefinition: ActionDefinition = {
 export default actionDefinition;
 
 export async function handler({ input }: ActionContext): Promise<OutputObject> {
+  const { answer, pageId, spaceId } = await askDocs(input.question);
+
+  let sourceText = '';
+  if (pageId && spaceId) {
+    const internalPageUrl = await getInternalPageUrl(pageId, spaceId);
+    const publicPageUrl = await getPublicPageUrl(internalPageUrl);
+    sourceText = `\n\nSource: ${publicPageUrl.url}`;
+  }
+
+  return {
+    textResponse: answer + sourceText,
+  };
+}
+
+async function askDocs(question: string): Promise<{
+  answer: string;
+  pageId?: string;
+  spaceId?: string;
+}> {
   const orgId = process.env.GITBOOK_ORG_ID;
   const apiKey = process.env.GITBOOK_API_KEY;
 
@@ -52,7 +71,7 @@ export async function handler({ input }: ActionContext): Promise<OutputObject> {
   const response = await axios.post(
     `https://api.gitbook.com/v1/orgs/${orgId}/ask`,
     {
-      query: input.question,
+      query: question,
     },
     {
       headers: {
@@ -62,15 +81,52 @@ export async function handler({ input }: ActionContext): Promise<OutputObject> {
     },
   );
 
-  const data = response.data;
-
-  if (!data.answer || !data.answer.text) {
-    throw new Error('Invalid response from GitBook API.');
+  if (!response.data.answer || !response.data.answer.text) {
+    return {
+      answer: 'No answer found in the Connery documentation.',
+    };
   }
 
-  const answerText: string = data.answer.text;
+  return {
+    answer: response.data.answer.text,
+    pageId: response.data.answer.sources[0].page,
+    spaceId: response.data.answer.sources[0].space,
+  };
+}
+
+async function getInternalPageUrl(pageId: string, spaceId: string): Promise<string> {
+  const apiToken = process.env.GITBOOK_API_KEY;
+
+  if (!apiToken) {
+    throw new Error('GITBOOK_API_KEY is not defined in environment variables.');
+  }
+
+  const response = await axios.get(`https://api.gitbook.com/v1/spaces/${spaceId}/content/page/${pageId}`, {
+    headers: {
+      Authorization: `Bearer ${apiToken}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return response.data.urls.app;
+}
+
+async function getPublicPageUrl(internalPageUrl: string): Promise<{ title: string; url: string }> {
+  const apiKey = process.env.GITBOOK_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('GITBOOK_API_KEY is not defined in environment variables.');
+  }
+
+  const response = await axios.get('https://api.gitbook.com/v1/urls/content', {
+    params: { url: internalPageUrl },
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+    },
+  });
 
   return {
-    textResponse: answerText,
+    title: response.data.page.title,
+    url: response.data.space.urls.public + response.data.page.path,
   };
 }
