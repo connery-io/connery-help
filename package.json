@@ -7,6 +7,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@linear/sdk": "^31.0.0",
     "axios": "^1.7.7",
     "connery": "^0.3.0"
   },

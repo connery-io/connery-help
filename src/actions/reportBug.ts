@@ -1,4 +1,5 @@
-import axios from 'axios';
+import { LinearClient } from '@linear/sdk';
+import { IssueCreateInput } from '@linear/sdk/dist/_generated_documents';
 import { ActionDefinition, ActionContext, OutputObject } from 'connery';
 
 const actionDefinition: ActionDefinition = {
@@ -62,16 +63,34 @@ const actionDefinition: ActionDefinition = {
 export default actionDefinition;
 
 export async function handler({ input }: ActionContext): Promise<OutputObject> {
-  const slackWebhookUrl = process.env.BUG_REPORT_SLACK_WEBHOOK_URL;
+  const linearApiKey = process.env.LINEAR_API_KEY;
 
-  if (!slackWebhookUrl) {
-    throw new Error('BUG_REPORT_SLACK_WEBHOOK_URL is not defined in environment variables.');
+  if (!linearApiKey) {
+    throw new Error('LINEAR_API_KEY is not defined in environment variables.');
   }
 
-  const message = `*🐞 You have a new bug report*\n\nName: ${input.name}\nEmail: ${input.email}\nOrganization: ${input.organization}\n\n${input.bugDescription}`;
-  await axios.post(slackWebhookUrl, {
-    text: message,
+  const client = new LinearClient({
+    apiKey: linearApiKey,
   });
+
+  const issue: IssueCreateInput = {
+    title: 'Bug report from Slack',
+    description: `
+      ## Description
+      ${input.bugDescription}
+
+      ## Reported by
+      - Name: ${input.name}
+      - Email: ${input.email}
+      - Organization: ${input.organization}
+    `
+      .split('\n')
+      .map((line) => line.trim())
+      .join('\n'),
+    labelIds: ['0d50c8ca-1a16-4ade-83b7-d3eb4a42e5ca'], // "Bug report from Slack" label
+    teamId: '6e509556-467e-4300-a5ee-29e540324452', // "CON" team
+  };
+  await client.createIssue(issue);
 
   return {
     textResponse: 'Thank you for your bug report! We will review it and get back to you soon.',

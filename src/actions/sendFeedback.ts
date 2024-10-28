@@ -1,4 +1,5 @@
-import axios from 'axios';
+import { LinearClient } from '@linear/sdk';
+import { IssueCreateInput } from '@linear/sdk/dist/_generated_documents';
 import { ActionDefinition, ActionContext, OutputObject } from 'connery';
 
 const actionDefinition: ActionDefinition = {
@@ -61,16 +62,34 @@ const actionDefinition: ActionDefinition = {
 export default actionDefinition;
 
 export async function handler({ input }: ActionContext): Promise<OutputObject> {
-  const slackWebhookUrl = process.env.FEEDBACK_SLACK_WEBHOOK_URL;
+  const linearApiKey = process.env.LINEAR_API_KEY;
 
-  if (!slackWebhookUrl) {
-    throw new Error('FEEDBACK_SLACK_WEBHOOK_URL is not defined in environment variables.');
+  if (!linearApiKey) {
+    throw new Error('LINEAR_API_KEY is not defined in environment variables.');
   }
 
-  const message = `*💡 You have new feedback*\n\nName: ${input.name}\nEmail: ${input.email}\nOrganization: ${input.organization}\n\n${input.feedback}`;
-  await axios.post(slackWebhookUrl, {
-    text: message,
+  const client = new LinearClient({
+    apiKey: linearApiKey,
   });
+
+  const issue: IssueCreateInput = {
+    title: 'Feedback from Slack',
+    description: `
+      ## Feedback
+      ${input.feedback}
+
+      ## Provided by
+      - Name: ${input.name}
+      - Email: ${input.email}
+      - Organization: ${input.organization}
+    `
+      .split('\n')
+      .map((line) => line.trim())
+      .join('\n'),
+    labelIds: ['66dee832-96c0-4344-a232-88498083878e'], // "Feedback from Slack" label
+    teamId: '6e509556-467e-4300-a5ee-29e540324452', // "CON" team
+  };
+  await client.createIssue(issue);
 
   return {
     textResponse: 'Thank you for your feedback! We will review it and get back to you soon.',
